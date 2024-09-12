@@ -30,6 +30,11 @@ public class TrainerControllerTest {
     @InjectMocks
     public TrainerController trainerController;
 
+    @Mock
+    private BindingResult bindingResult;
+
+    private TrainerDTO trainerDTO;
+
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -95,6 +100,16 @@ public class TrainerControllerTest {
         verify(trainerService, times(1)).update(trainerDTO);
     }
     @Test
+    public void testUpdateTrainer_WhenValidationFails_ReturnsBadRequest() {
+        long trainerId = 1L;
+        String expectedErrorMessage = "Validation error";
+        when(helper.handleBindingErrors(bindingResult)).thenReturn(expectedErrorMessage);
+        ResponseEntity<String> responseEntity = trainerController.updateTrainer(trainerDTO, bindingResult, trainerId);
+        assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
+        assertEquals(expectedErrorMessage, responseEntity.getBody());
+        verify(helper).handleBindingErrors(bindingResult);
+    }
+    @Test
     public void testPatchTrainer_Success() {
         TrainerDTO trainerDTO = new TrainerDTO();
         BindingResult bindingResult = mock(BindingResult.class);
@@ -104,6 +119,17 @@ public class TrainerControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Trainer successfully patched", response.getBody());
         verify(trainerService, times(1)).patchTrainer(1L, trainerDTO);
+    }
+    @Test
+    public void testPatchTrainer_WhenValidationFails_ReturnsBadRequest() {
+        long trainerId = 1L;
+        String expectedErrorMessage = "Validation error";
+        when(helper.handleBindingErrors(bindingResult)).thenReturn(expectedErrorMessage);
+        ResponseEntity<String> responseEntity = trainerController.patchTrainer(trainerDTO, bindingResult, trainerId);
+        assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
+        assertEquals(expectedErrorMessage, responseEntity.getBody());
+        verify(helper).handleBindingErrors(bindingResult);
+        verify(trainerService, never()).patchTrainer(anyLong(), any(TrainerDTO.class));
     }
     @Test
     public void testDeleteTrainer_Success() {

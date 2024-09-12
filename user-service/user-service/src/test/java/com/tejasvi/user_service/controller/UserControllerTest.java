@@ -41,7 +41,7 @@ class UserControllerTest {
     }
 
     @Test
-    public void testFetchAllUsers() throws Exception {
+    void testFetchAllUsers() throws Exception {
         UserDTO user1 = new UserDTO(1L, "Alice", 25, "alice@example.com", Level.BEGINNER, 1L);
         UserDTO user2 = new UserDTO(2L, "Bob", 28, "bob@example.com", Level.BEGINNER, 2L);
         List<UserDTO> users= Arrays.asList(user1,user2);
@@ -53,7 +53,7 @@ class UserControllerTest {
                 .andExpect(status().isOk());
     }
     @Test
-    public void testFetchUserById() throws Exception{
+    void testFetchUserById() throws Exception{
         UserDTO user = new UserDTO(1L, "Alice", 25, "alice@example.com", Level.BEGINNER, 101L);
 
         when(userService.getUserById(1L)).thenReturn(user);
@@ -64,7 +64,7 @@ class UserControllerTest {
 
     }
     @Test
-    public void testCreateUser() throws Exception {
+    void testCreateUser() throws Exception {
         UserDTO userDTO = new UserDTO(1L, "Alice", 25, "alice@example.com", Level.BEGINNER, 101L);
         when(helpers.validateUserRequest(any())).thenReturn(null);
         mockMvc.perform(MockMvcRequestBuilders.post(Constants.BASE_PATH)
@@ -74,7 +74,7 @@ class UserControllerTest {
 
     }
     @Test
-    public void testCreateUserValidationError() throws Exception {
+    void testCreateUserValidationError() throws Exception {
         UserDTO userDTO = new UserDTO(1L, "", 17, "invalid-email", Level.BEGINNER, 101L);
         when(helpers.validateUserRequest(org.mockito.ArgumentMatchers.any())).thenReturn("Invalid details provided");
 
@@ -85,7 +85,7 @@ class UserControllerTest {
     }
 
     @Test
-    public void testUpdateUser() throws Exception {
+    void testUpdateUser() throws Exception {
         UserDTO userDTO = new UserDTO(1L, "Alice", 25, "alice@example.com", Level.BEGINNER, 101L);
         when(helpers.validateUserRequest(org.mockito.ArgumentMatchers.any())).thenReturn(null);
 
@@ -95,7 +95,7 @@ class UserControllerTest {
                 .andExpect(status().isOk());
     }
     @Test
-    public void testUpdateUserWithInvalidDetails() throws Exception {
+    void testUpdateUserWithInvalidDetails() throws Exception {
         UserDTO userDTO = new UserDTO(1L, "Alice", 25, "alice@example.com", Level.BEGINNER, 101L);
         when(helpers.validateUserRequest(org.mockito.ArgumentMatchers.any())).thenReturn("Invalid details provided");
 
@@ -106,7 +106,7 @@ class UserControllerTest {
     }
 
     @Test
-    public void testPatchUser() throws Exception {
+    void testPatchUser() throws Exception {
         UserDTO userDTO = new UserDTO(null, "Alice", 43, null, null, null);
         when(helpers.validateUserRequest(org.mockito.ArgumentMatchers.any())).thenReturn(null);
 
@@ -116,7 +116,7 @@ class UserControllerTest {
                 .andExpect(status().isOk());
     }
     @Test
-    public void testpatchUserWithInvalidDetails() throws Exception {
+    void testpatchUserWithInvalidDetails() throws Exception {
         UserDTO userDTO = new UserDTO(1L, "Alice", 25, null,null, null);
         when(helpers.validateUserRequest(org.mockito.ArgumentMatchers.any())).thenReturn("Invalid details provided");
 
@@ -126,14 +126,14 @@ class UserControllerTest {
                 .andExpect(status().isBadRequest());
     }
     @Test
-    public void testRemoveUser() throws Exception {
+    void testRemoveUser() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.delete(Constants.BASE_PATH + "/{userId}", 1L)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 
     @Test
-    public void testFetchUsersWithTrainerById() throws Exception {
+    void testFetchUsersWithTrainerById() throws Exception {
         UserTrainerResponse response = new UserTrainerResponse();
 
         when(userService.getUsersWithTrainers(1L)).thenReturn(response);
@@ -144,7 +144,7 @@ class UserControllerTest {
     }
 
     @Test
-    public void testFetchUsersByTrainerId() throws Exception {
+    void testFetchUsersByTrainerId() throws Exception {
         UserDTO user1 = new UserDTO(1L, "Alice", 25, "alice@example.com", Level.BEGINNER, 101L);
         UserDTO user2 = new UserDTO(2L, "Bob", 30, "bob@example.com", Level.INTERMEDIATE, 101L);
         List<UserDTO> users = Arrays.asList(user1, user2);

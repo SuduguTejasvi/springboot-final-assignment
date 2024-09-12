@@ -15,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -23,7 +24,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepo userRepo;
     private final Convertor convertor;
     private final RestTemplate restTemplate;
-    private final String USER_NOT_FOUND_MSG="user not found";
 
     @Autowired
     public UserServiceImpl(UserRepo userRepo, Convertor convertor, RestTemplate restTemplate) {
@@ -39,14 +39,13 @@ public class UserServiceImpl implements UserService {
             List<User> users = userRepo.findAll();
             log.info("Successfully retrieved {} users.", users.size());
             return users.stream()
-                    .map(convertor::userEntityToDTOConvertor)
-                    .toList();
+                    .map(user -> convertor.userEntityToDTOConvertor(user))
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to retrieve users.", e);
             throw e;
         }
     }
-
 
     @Override
     public UserDTO getUserById(long id) {
@@ -58,7 +57,7 @@ public class UserServiceImpl implements UserService {
                 return convertor.userEntityToDTOConvertor(userOptional.get());
             } else {
                 log.error("User with ID: {} not found.", id);
-                throw new UserNotFoundException(USER_NOT_FOUND_MSG);
+                throw new UserNotFoundException("User not found");
             }
         } catch (UserNotFoundException ex) {
             log.warn("User with ID: {} not found. Throwing UserNotFoundException.", id);
@@ -94,7 +93,7 @@ public class UserServiceImpl implements UserService {
                 return "Successfully updated user";
             } else {
                 log.error("User with ID: {} not found. Update operation aborted.", userDTO.getId());
-                throw new UserNotFoundException(USER_NOT_FOUND_MSG);
+                throw new UserNotFoundException("User not found");
             }
         } catch (Exception e) {
             log.error("Failed to update user with ID: {}", userDTO.getId(), e);
@@ -113,7 +112,7 @@ public class UserServiceImpl implements UserService {
                 return "Successfully deleted user";
             } else {
                 log.error("User with ID: {} not found. Deletion operation aborted.", id);
-                throw new UserNotFoundException(USER_NOT_FOUND_MSG);
+                throw new UserNotFoundException("User not found");
             }
         } catch (UserNotFoundException e) {
             log.warn("User with ID: {} not found. Throwing UserNotFoundException.", id);
@@ -143,7 +142,7 @@ public class UserServiceImpl implements UserService {
                 return "User updated successfully";
             } else {
                 log.error("User with ID: {} not found. Patch update operation aborted.", id);
-                throw new UserNotFoundException(USER_NOT_FOUND_MSG);
+                throw new UserNotFoundException("User not found");
             }
         } catch (Exception e) {
             log.error("Failed to patch update user with ID: {}", id, e);
@@ -158,7 +157,7 @@ public class UserServiceImpl implements UserService {
             UserTrainerResponse response = new UserTrainerResponse();
             User user = userRepo.findById(id).orElseThrow(() -> {
                 log.error("User with ID: {} not found. Fetching operation aborted.", id);
-                return new UserNotFoundException(USER_NOT_FOUND_MSG);
+                return new UserNotFoundException("User not found");
             });
             Trainer trainer = restTemplate.getForObject("http://localhost:9002/trainer/" + user.getTrainerId(), Trainer.class);
             response.setUser(user);
@@ -178,8 +177,8 @@ public class UserServiceImpl implements UserService {
             List<User> users = userRepo.findByTrainerId(trainerId);
             log.info("Successfully retrieved {} users with Trainer ID: {}", users.size(), trainerId);
             return users.stream()
-                    .map(convertor::userEntityToDTOConvertor)
-                    .toList();
+                    .map(user -> convertor.userEntityToDTOConvertor(user))
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to retrieve users with Trainer ID: {}", trainerId, e);
             throw e;

@@ -38,6 +38,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar 
               -Dsonar.projectKey=tejasvi_springbootassignment
-          -Dsonar.exclusions=**/tests/**,**/docs/**,**/entity/**,**/exception/**,**/repository/**,**/util/**,**/config/**,**/UserServiceApplicationTests.java
+          -Dsonar.exclusions=**/tests/**,**/docs/**,**/entity/**,**/exception/**,**/repository/**,**/util/**,**/config/**,**/UserServiceApplication.java
 
 

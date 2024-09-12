@@ -15,7 +15,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+
 
 @Service
 @Slf4j
@@ -39,13 +39,14 @@ public class UserServiceImpl implements UserService {
             List<User> users = userRepo.findAll();
             log.info("Successfully retrieved {} users.", users.size());
             return users.stream()
-                    .map(user -> convertor.userEntityToDTOConvertor(user))
-                    .collect(Collectors.toList());
+                    .map(convertor::userEntityToDTOConvertor)
+                    .toList();
         } catch (Exception e) {
             log.error("Failed to retrieve users.", e);
             throw e;
         }
     }
+
 
     @Override
     public UserDTO getUserById(long id) {
@@ -177,8 +178,8 @@ public class UserServiceImpl implements UserService {
             List<User> users = userRepo.findByTrainerId(trainerId);
             log.info("Successfully retrieved {} users with Trainer ID: {}", users.size(), trainerId);
             return users.stream()
-                    .map(user -> convertor.userEntityToDTOConvertor(user))
-                    .collect(Collectors.toList());
+                    .map(convertor::userEntityToDTOConvertor)
+                    .toList();
         } catch (Exception e) {
             log.error("Failed to retrieve users with Trainer ID: {}", trainerId, e);
             throw e;

@@ -6,8 +6,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
-  build-user-service:
-    name: Build and analyze user-service
+  build:
+    name: Build and analyze
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -31,14 +31,14 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: Build and analyze user-service
+      - name: Build and analyze
         working-directory: user-service/  # Correct path without extra nesting
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar 
               -Dsonar.projectKey=tejasvi_springbootassignment
-              -Dsonar.exclusions=**/tests/**,**/docs/**,**/entity/**,**/exception/**,**/repository/**,**/util/**,**/config/**,**/UserServiceApplication.java
+          -Dsonar.exclusions=**/tests/**,**/docs/**,**/entity/**,**/exception/**,**/repository/**,**/util/**,**/config/**,**/UserServiceApplication.java
 
   build-trainer-service:
     name: Build and analyze trainer-service
@@ -66,7 +66,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Build and analyze trainer-service
-        working-directory: trainer-service/  # Correct path without extra nesting
+        working-directory: trainer-service/trainer-service/  # Correct path without extra nesting
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_1 }}

@@ -204,9 +204,18 @@ public class TrainerServiceTest {
         assertEquals("Successfully saved trainer",msg);
     }
     @Test
-    public void test_update_failure(){
+    public void test_update_notFoundId(){
         when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
         TrainerNotFoundException trow=assertThrows(TrainerNotFoundException.class,()->{
+            traineeService.getTrainerById(anyLong());
+        });
+        assertEquals("Trainer Not found",trow.getMessage());
+        verify(trainerRepo,times(1)).findById(anyLong());
+    }
+    @Test
+    public void test_update_Failure(){
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
+        RuntimeException trow=assertThrows(RuntimeException.class,()->{
             traineeService.getTrainerById(anyLong());
         });
         assertEquals("Trainer Not found",trow.getMessage());
@@ -254,6 +263,7 @@ public class TrainerServiceTest {
        assertEquals("Failed to patch update trainer",exception.getMessage());
     }
     
+
 
     @Test
     public void delete_failure(){

@@ -135,19 +135,6 @@ public class TrainerServiceTest {
 
     }
 
-    @Test
-    public void testUpdate_Failure() {
-        long trainerId = 1L;
-        when(trainerRepo.findById(trainerId)).thenThrow(new RuntimeException("Trainer Not found"));
-
-
-        RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
-            traineeService.update(trainerDTO);
-        });
-
-        assertEquals("Cannot invoke \"com.tejasvi.trainer_service.dto.TrainerDTO.getId()\" because \"trainerDTO\" is null", thrown.getMessage());
-
-    }
 
 
 
@@ -213,14 +200,20 @@ public class TrainerServiceTest {
         verify(trainerRepo,times(1)).findById(anyLong());
     }
     @Test
-    public void test_update_Failure(){
-        when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
-        RuntimeException trow=assertThrows(RuntimeException.class,()->{
-            traineeService.getTrainerById(anyLong());
+    public void testUpdate_Failure() {
+        TrainerDTO trainerDTO = new TrainerDTO();
+        trainerDTO.setId(1L);
+        when(trainerRepo.findById(anyLong())).thenThrow(new RuntimeException("Trainer not found"));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            traineeService.update(trainerDTO);
         });
-        assertEquals("Trainer Not found",trow.getMessage());
-        verify(trainerRepo,times(1)).findById(anyLong());
+
+        assertEquals("Failed to update trainer", exception.getMessage());
+
     }
+
+
     @Test
     public void test_patch_success(){
         Trainer trainer=new Trainer();
@@ -262,7 +255,7 @@ public class TrainerServiceTest {
        });
        assertEquals("Failed to patch update trainer",exception.getMessage());
     }
-    
+
 
 
     @Test

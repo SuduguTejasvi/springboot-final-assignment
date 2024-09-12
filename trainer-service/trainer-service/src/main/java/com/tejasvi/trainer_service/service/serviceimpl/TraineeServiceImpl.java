@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -118,10 +119,10 @@ public class TraineeServiceImpl implements TrainerService {
             UsersTrainerResponse response = new UsersTrainerResponse();
             Trainer trainer = trainerRepo.findById(id).orElseThrow(() -> {
                 log.error("Trainer with ID: {} not found. Fetching operation aborted.", id);
-                return new TrainerNotFoundException("User not found");
+                return new TrainerNotFoundException("Failed to fetch users for trainer");
             });
-            User[] usersarray = restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + id, User[].class);
-            List<User> users= Arrays.asList(usersarray);
+            User[] usersArray = restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + id, User[].class);
+            List<User> users = (usersArray != null) ? Arrays.asList(usersArray) : Collections.emptyList();
             response.setUser(users);
             response.setTrainer(trainer);
             log.info("Successfully fetched user and trainer for User ID: {}", id);
@@ -131,6 +132,7 @@ public class TraineeServiceImpl implements TrainerService {
             throw e;
         }
     }
+
 
     @Override
     public String patchTrainer(long id, TrainerDTO trainerDTO) {

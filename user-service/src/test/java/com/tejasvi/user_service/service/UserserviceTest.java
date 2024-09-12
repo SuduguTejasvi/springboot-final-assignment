@@ -27,7 +27,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.*;
 
-public class UserserviceTest {
+class UserserviceTest {
 
     @InjectMocks
     public UserServiceImpl userService;
@@ -52,14 +52,14 @@ public class UserserviceTest {
     }
 
     @Test
-    public void testGetUsers() {
+    void testGetUsers() {
         when(userRepo.findAll()).thenReturn(Arrays.asList(user));
         when(convertor.userEntityToDTOConvertor(any(User.class))).thenReturn(userDTO);
         List<UserDTO> result = userService.getUsers();
         assertEquals(1, result.size());
     }
     @Test
-    public void testGetUsers_Failed() {
+    void testGetUsers_Failed() {
         when(userRepo.findAll()).thenThrow(new RuntimeException("Failed to retrieve users."));
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -178,8 +178,109 @@ public class UserserviceTest {
         verify(userRepo, times(1)).findById(userId);
         verify(userRepo, never()).save(any(User.class));
     }
+    @Test
+    void testPatchUser_AllFieldsUpdated() {
+        long userId = 1L;
+        UserDTO userDTO = new UserDTO();
+        userDTO.setName("Updated Name");
+        userDTO.setAge(30);
+        userDTO.setEmail("updated.email@example.com");
+        userDTO.setFitnessLevel(Level.ADVANCED);
+        userDTO.setTrainerId(5L);
+        User existingUser = new User();
+        existingUser.setId(userId);
+        existingUser.setName("Original Name");
+        existingUser.setAge(25);
+        existingUser.setEmail("original.email@example.com");
+        existingUser.setFitnessLevel(Level.BEGINNER);
+        existingUser.setTrainerId(3L);
+        when(userRepo.findById(userId)).thenReturn(Optional.of(existingUser));
+        UserDTO existingUserDTO = new UserDTO();
+        existingUserDTO.setName("Original Name");
+        existingUserDTO.setAge(25);
+        existingUserDTO.setEmail("original.email@example.com");
+        existingUserDTO.setFitnessLevel(Level.BEGINNER);
+        existingUserDTO.setTrainerId(3L);
+        when(convertor.userEntityToDTOConvertor(existingUser)).thenReturn(existingUserDTO);
+        when(userRepo.save(any(User.class))).thenReturn(existingUser);
+        String result = userService.patchUser(userId, userDTO);
+        assertEquals("User updated successfully", result);
+    }
+    @Test
+    void testPatchUser_NoFieldsUpdated() {
+        long userId = 1L;
+        UserDTO userDTO = new UserDTO();
+        User existingUser = new User();
+        existingUser.setId(userId);
+        existingUser.setName("Original Name");
+        existingUser.setAge(25);
+        existingUser.setEmail("original.email@example.com");
+        existingUser.setFitnessLevel(Level.BEGINNER);
+        existingUser.setTrainerId(3L);
+        UserDTO existingUserDTO = new UserDTO();
+        existingUserDTO.setName("Original Name");
+        existingUserDTO.setAge(25);
+        existingUserDTO.setEmail("original.email@example.com");
+        existingUserDTO.setFitnessLevel(Level.BEGINNER);
+        existingUserDTO.setTrainerId(3L);
+        when(userRepo.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(convertor.userEntityToDTOConvertor(existingUser)).thenReturn(existingUserDTO);
+        when(convertor.userDTOTOEntityConvertor(existingUserDTO)).thenReturn(existingUser);
+        when(userRepo.save(any(User.class))).thenReturn(existingUser);
+        String result = userService.patchUser(userId, userDTO);
+        assertEquals("User updated successfully", result);
+        verify(userRepo, times(1)).save(argThat(updatedUser ->
+                updatedUser.getName().equals("Original Name") &&
+                        updatedUser.getAge() == 25 &&
+                        updatedUser.getEmail().equals("original.email@example.com") &&
+                        updatedUser.getFitnessLevel() == Level.BEGINNER &&
+                        updatedUser.getTrainerId() == 3L
+        ));
+        verify(convertor, times(1)).userEntityToDTOConvertor(existingUser);
+    }
 
-
+    @Test
+    void testPatchUser_SomeFieldsUpdated() {
+        long userId = 1L;
+        UserDTO userDTO = new UserDTO();
+        userDTO.setName("Updated Name");
+        userDTO.setAge(0);  // Age not updated
+        userDTO.setEmail("updated.email@example.com");
+        User existingUser = new User();
+        existingUser.setId(userId);
+        existingUser.setName("Original Name");
+        existingUser.setAge(25);
+        existingUser.setEmail("original.email@example.com");
+        existingUser.setFitnessLevel(Level.BEGINNER);
+        existingUser.setTrainerId(3L);
+        UserDTO existingUserDTO = new UserDTO();
+        existingUserDTO.setName("Original Name");
+        existingUserDTO.setAge(25);
+        existingUserDTO.setEmail("original.email@example.com");
+        existingUserDTO.setFitnessLevel(Level.BEGINNER);
+        existingUserDTO.setTrainerId(3L);
+        when(userRepo.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(convertor.userEntityToDTOConvertor(existingUser)).thenReturn(existingUserDTO);
+        User updatedUser = new User();
+        updatedUser.setId(userId);
+        updatedUser.setName("Updated Name");
+        updatedUser.setAge(25);
+        updatedUser.setEmail("updated.email@example.com");
+        updatedUser.setFitnessLevel(Level.BEGINNER);
+        updatedUser.setTrainerId(3L);
+        when(convertor.userDTOTOEntityConvertor(existingUserDTO)).thenReturn(updatedUser);
+        when(userRepo.save(any(User.class))).thenReturn(updatedUser);
+        String result = userService.patchUser(userId, userDTO);
+        assertEquals("User updated successfully", result);
+        verify(userRepo, times(1)).save(argThat(savedUser ->
+                savedUser.getName().equals("Updated Name") &&
+                        savedUser.getAge() == 25 &&  // Age should remain the same
+                        savedUser.getEmail().equals("updated.email@example.com") &&
+                        savedUser.getFitnessLevel() == Level.BEGINNER &&
+                        savedUser.getTrainerId() == 3L
+        ));
+        verify(convertor, times(1)).userEntityToDTOConvertor(existingUser);
+    }
 
     @Test
     void testGetUsersWithTrainers() {

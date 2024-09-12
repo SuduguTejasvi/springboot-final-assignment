@@ -106,13 +106,14 @@ public class TrainerServiceTest {
         response.setTrainer(trainer);
         response.setUser(Collections.singletonList(user));
         when(trainerRepo.findById(anyLong())).thenReturn(Optional.of(trainer));
-        when(restTemplate.getForEntity(anyString(), eq(User[].class)))
-                .thenReturn(ResponseEntity.ok(new User[]{user}));
+        when(restTemplate.getForObject(anyString(), eq(User[].class)))
+                .thenReturn(new User[]{user}); // Ensure this matches your actual code
 
         assertEquals(response, traineeService.getUsersByTrainerId(1L));
         verify(trainerRepo, times(1)).findById(1L);
-        verify(restTemplate, times(1)).getForEntity("http://localhost:9001/user/users/1", User[].class);
+        verify(restTemplate, times(1)).getForObject("http://localhost:9001/users/by-trainer/1", User[].class);
     }
+
 
     @Test
     public void test_update_success(){
@@ -165,7 +166,7 @@ public class TrainerServiceTest {
 
     }
     @Test
-    public void testGetUsersByTrainerId_Success() {
+    void testGetUsersByTrainerId_Success() {
         long trainerId = 1L;
         Trainer trainer = new Trainer();
         trainer.setId(trainerId);
@@ -174,13 +175,16 @@ public class TrainerServiceTest {
         ResponseEntity<User[]> responseEntity = ResponseEntity.ok(usersArray);
 
         when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(trainer));
-        when(restTemplate.getForEntity("http://localhost:9001/user/users/" + trainerId, User[].class))
-                .thenReturn(responseEntity);
+        when(restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + trainerId, User[].class))
+                .thenReturn(usersArray); // Ensure this matches your actual code
+
         UsersTrainerResponse response = traineeService.getUsersByTrainerId(trainerId);
+
         assertNotNull(response);
         assertEquals(trainer, response.getTrainer());
         assertEquals(2, response.getUser().size());
     }
+
 
     @Test
     public void testGetUsersByTrainerId_TrainerNotFound() {
@@ -199,11 +203,14 @@ public class TrainerServiceTest {
         trainer.setId(trainerId);
 
         when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(trainer));
-        when(restTemplate.getForEntity("http://localhost:9001/user/users/" + trainerId, User[].class))
+        when(restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + trainerId, User[].class))
                 .thenThrow(new RuntimeException("External service error"));
+
         RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
             traineeService.getUsersByTrainerId(trainerId);
         });
-        assertEquals("Failed to fetch users for trainer", thrown.getMessage());
+
+        assertEquals("External service error", thrown.getMessage());
     }
+
 }

@@ -37,6 +37,8 @@ public class TrainerServiceTest {
     @InjectMocks
     private TraineeServiceImpl traineeService;
 
+    private TrainerDTO trainerDTO;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -53,6 +55,15 @@ public class TrainerServiceTest {
         verify(trainerRepo, times(1)).findAll();
         verify(convertor, times(1)).entityToDTOConvertor(trainer);
     }
+    @Test
+    public void testGetTrainers_failure() {
+        String errorMessage = "Database error";
+        when(trainerRepo.findAll()).thenThrow(new RuntimeException(errorMessage));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            traineeService.getTrainers();
+        });
+        assertEquals("Failed to fetch trainers", exception.getMessage());
+    }
 
     @Test
     void getTrainerById_Success() {
@@ -65,7 +76,17 @@ public class TrainerServiceTest {
         verify(trainerRepo, times(1)).findById(1L);
         verify(convertor, times(1)).entityToDTOConvertor(trainer);
     }
-
+    @Test
+    public void testGetTrainerById_Failure() {
+        long trainerId = 1L;
+        String unexpectedErrorMessage = "Unexpected database error";
+        when(trainerRepo.findById(trainerId)).thenThrow(new RuntimeException(unexpectedErrorMessage));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            traineeService.getTrainerById(trainerId);
+        });
+        assertEquals("An unexpected error occurred while fetching the trainer", exception.getMessage());
+        assertEquals(unexpectedErrorMessage, exception.getCause().getMessage());
+    }
     @Test
     void getTrainerById_TrainerNotFound() {
         when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
@@ -86,6 +107,48 @@ public class TrainerServiceTest {
         assertEquals("Successfully saved trainer", traineeService.save(trainerDTO));
         verify(trainerRepo, times(1)).save(trainer);
     }
+    @Test
+    public void testSave_Failure() {
+        String unexpectedErrorMessage = "Unexpected database error";
+        when(trainerRepo.save(any(Trainer.class))).thenThrow(new RuntimeException(unexpectedErrorMessage));
+        when(convertor.dTOToEntityConvertor(trainerDTO)).thenReturn(new Trainer());  // Mock the conversion
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            traineeService.save(trainerDTO);
+        });
+        assertEquals("Failed to save trainer", exception.getMessage());
+        assertEquals(unexpectedErrorMessage, exception.getCause().getMessage());
+    }
+
+    @Test
+    public void testUpdate_Success() {
+        long trainerId = 1L;
+        Trainer trainer = new Trainer(trainerId, "John Doe", "Yoga", "NIT certificate", 4, "8888888888", "Meditation");
+        TrainerDTO trainerDTO = new TrainerDTO(trainerId, "John Doe", "Yoga", "NIT certificate", 4, "8888888888", "Meditation");
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(trainerDTO);
+        when(convertor.dTOToEntityConvertor(trainerDTO)).thenReturn(trainer);
+        when(trainerRepo.save(trainer)).thenReturn(trainer);
+        TrainerDTO resultDTO = traineeService.getTrainerById(trainerId);
+        String updateMsg = traineeService.update(trainerDTO);
+        assertEquals(trainerDTO, resultDTO);
+        assertEquals("Successfully updated trainer", updateMsg);
+
+    }
+
+    @Test
+    public void testUpdate_Failure() {
+        long trainerId = 1L;
+        when(trainerRepo.findById(trainerId)).thenThrow(new RuntimeException("Trainer Not found"));
+
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
+            traineeService.update(trainerDTO);
+        });
+
+        assertEquals("Cannot invoke \"com.tejasvi.trainer_service.dto.TrainerDTO.getId()\" because \"trainerDTO\" is null", thrown.getMessage());
+
+    }
+
 
 
     @Test
@@ -96,6 +159,20 @@ public class TrainerServiceTest {
         assertEquals("Successfully deleted trainer", traineeService.delete(1L));
         verify(trainerRepo, times(1)).findById(1L);
         verify(trainerRepo, times(1)).deleteById(1L);
+    }
+
+    @Test
+    public void testDelete_Failure() {
+        long trainerId = 1L;
+
+        when(trainerRepo.findById(trainerId)).thenThrow(new RuntimeException("Trainer Not found"));
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
+            traineeService.delete(trainerId);
+        });
+
+        assertEquals("Failed to delete trainer", thrown.getMessage());
+
     }
 
     @Test
@@ -147,14 +224,37 @@ public class TrainerServiceTest {
 
     }
     @Test
-    public void test_patch_failure(){
-        when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
-        TrainerNotFoundException trow=assertThrows(TrainerNotFoundException.class,()->{
-            traineeService.getTrainerById(anyLong());
+    public void testPatchTrainer_Failure() {
+        long trainerId = 1L;
+        TrainerDTO updateDTO = new TrainerDTO(trainerId, "New Name", null, null, 0, "0987654321", null);
+
+        when(trainerRepo.findById(trainerId)).thenThrow(new RuntimeException("Trainer not found"));
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
+            traineeService.patchTrainer(trainerId, updateDTO);
         });
-        assertEquals("Trainer Not found",trow.getMessage());
-        verify(trainerRepo,times(1)).findById(anyLong());
+
+        assertEquals("Failed to patch update trainer", thrown.getMessage());
+
     }
+
+    @Test
+    public void testPatchTrainer_InvalidExperienceYears() {
+        long trainerId = 1L;
+        TrainerDTO existingTrainerDTO = new TrainerDTO(trainerId, "Old Name", "Old Speciality", "Old Certificate", 5, "1234567890", "Old Workout Plan");
+        TrainerDTO updateDTO = new TrainerDTO(trainerId, null, null, null, -1, null, null);
+        Trainer existingTrainer = new Trainer(trainerId, "Old Name", "Old Speciality", "Old Certificate", 5, "1234567890", "Old Workout Plan");
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(existingTrainer));
+        when(convertor.dTOToEntityConvertor(existingTrainerDTO)).thenReturn(existingTrainer);
+        when(trainerRepo.save(any(Trainer.class))).thenThrow(new RuntimeException("Trainer not found"));
+
+       RuntimeException exception= assertThrows(RuntimeException.class,()->{
+           traineeService.patchTrainer(trainerId, updateDTO);
+       });
+       assertEquals("Failed to patch update trainer",exception.getMessage());
+    }
+    
+
     @Test
     public void delete_failure(){
         when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
@@ -183,6 +283,23 @@ public class TrainerServiceTest {
         assertNotNull(response);
         assertEquals(trainer, response.getTrainer());
         assertEquals(2, response.getUser().size());
+    }
+
+    @Test
+    public void testGetUsersByTrainerId_UsersArrayNull() {
+        long trainerId = 1L;
+        Trainer trainer = new Trainer();
+        trainer.setId(trainerId);
+
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(trainer));
+        when(restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + trainerId, User[].class))
+                .thenReturn(null);
+
+        UsersTrainerResponse response = traineeService.getUsersByTrainerId(trainerId);
+
+        assertNotNull(response);
+        assertEquals(trainer, response.getTrainer());
+        assertTrue(response.getUser().isEmpty());
     }
 
 

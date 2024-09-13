@@ -1,158 +1,337 @@
-package com.tejasvi.trainer_service.service.serviceimpl;
+package com.tejasvi.trainer_service.service;
 
 import com.tejasvi.trainer_service.dto.TrainerDTO;
 import com.tejasvi.trainer_service.entity.Trainer;
 import com.tejasvi.trainer_service.exception.TrainerNotFoundException;
 import com.tejasvi.trainer_service.repository.TrainerRepo;
-import com.tejasvi.trainer_service.service.TrainerService;
+import com.tejasvi.trainer_service.service.serviceimpl.TraineeServiceImpl;
 import com.tejasvi.trainer_service.util.TrainerDTOConvertor;
 import com.tejasvi.trainer_service.vo.User;
 import com.tejasvi.trainer_service.vo.UsersTrainerResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
+
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-@Service
-@Slf4j
-public class TraineeServiceImpl implements TrainerService {
-    private final TrainerRepo trainerRepo;
-    private final TrainerDTOConvertor convertor;
-    private final RestTemplate restTemplate;
-    private final String userServiceUrl = "http://localhost:9001/user/users/";
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @Autowired
-    public TraineeServiceImpl(TrainerRepo trainerRepo, TrainerDTOConvertor convertor, RestTemplate restTemplate) {
-        this.trainerRepo = trainerRepo;
-        this.convertor = convertor;
-        this.restTemplate = restTemplate;
+public class TrainerServiceTest {
+
+    @Mock
+    private TrainerRepo trainerRepo;
+
+    @Mock
+    private TrainerDTOConvertor convertor;
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @InjectMocks
+    private TraineeServiceImpl traineeService;
+
+    private TrainerDTO trainerDTO;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
-    @Override
-    public List<TrainerDTO> getTrainers() {
-        log.info("Attempting to retrieve all trainers from the database.");
-        try {
-            List<Trainer> trainers = trainerRepo.findAll();
-            log.info("Successfully retrieved {} trainers.", trainers.size());
-            return trainers.stream()
-                    .map(convertor::entityToDTOConvertor)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Failed to fetch trainers due to an unexpected error.", e);
-            throw new RuntimeException("Failed to fetch trainers", e);
-        }
+    @Test
+    void getTrainers_Success() {
+        Trainer trainer = new Trainer();
+        TrainerDTO trainerDTO = new TrainerDTO();
+        when(trainerRepo.findAll()).thenReturn(Collections.singletonList(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(trainerDTO);
+
+        assertEquals(Collections.singletonList(trainerDTO), traineeService.getTrainers());
+        verify(trainerRepo, times(1)).findAll();
+        verify(convertor, times(1)).entityToDTOConvertor(trainer);
+    }
+    @Test
+    public void testGetTrainers_failure() {
+        String errorMessage = "Database error";
+        when(trainerRepo.findAll()).thenThrow(new RuntimeException(errorMessage));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            traineeService.getTrainers();
+        });
+        assertEquals("Failed to fetch trainers", exception.getMessage());
     }
 
-    @Override
-    public TrainerDTO getTrainerById(long id) {
-        log.info("Attempting to retrieve trainer with ID {}.", id);
-        try {
-            Optional<Trainer> trainerOptional = trainerRepo.findById(id);
-            if (trainerOptional.isPresent()) {
-                log.info("Successfully retrieved trainer with ID {}.", id);
-                return convertor.entityToDTOConvertor(trainerOptional.get());
-            } else {
-                log.warn("Trainer with ID {} not found.", id);
-                throw new TrainerNotFoundException("Trainer Not found");
-            }
-        } catch (TrainerNotFoundException ex) {
-            log.error("Trainer with ID {} not found.", id);
-            throw ex;
-        } catch (Exception ex) {
-            log.error("An unexpected error occurred while fetching trainer with ID {}.", id, ex);
-            throw new RuntimeException("An unexpected error occurred while fetching the trainer", ex);
-        }
+    @Test
+    void getTrainerById_Success() {
+        Trainer trainer = new Trainer();
+        TrainerDTO trainerDTO = new TrainerDTO();
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.of(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(trainerDTO);
+
+        assertEquals(trainerDTO, traineeService.getTrainerById(1L));
+        verify(trainerRepo, times(1)).findById(1L);
+        verify(convertor, times(1)).entityToDTOConvertor(trainer);
+    }
+    @Test
+    public void testGetTrainerById_Failure() {
+        long trainerId = 1L;
+        String unexpectedErrorMessage = "Unexpected database error";
+        when(trainerRepo.findById(trainerId)).thenThrow(new RuntimeException(unexpectedErrorMessage));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            traineeService.getTrainerById(trainerId);
+        });
+        assertEquals("An unexpected error occurred while fetching the trainer", exception.getMessage());
+        assertEquals(unexpectedErrorMessage, exception.getCause().getMessage());
+    }
+    @Test
+    void getTrainerById_TrainerNotFound() {
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
+
+        TrainerNotFoundException thrown = assertThrows(TrainerNotFoundException.class, () -> {
+            traineeService.getTrainerById(1L);
+        });
+        assertEquals("Trainer Not found", thrown.getMessage());
+        verify(trainerRepo, times(1)).findById(1L);
     }
 
-    @Override
-    public String save(TrainerDTO trainerDTO) {
-        log.info("Attempting to save a new trainer to the database.");
-        try {
-            trainerRepo.save(convertor.dTOToEntityConvertor(trainerDTO));
-            log.info("Trainer saved successfully.");
-            return "Successfully saved trainer";
-        } catch (Exception e) {
-            log.error("Failed to save trainer due to an unexpected error.", e);
-            throw new RuntimeException("Failed to save trainer", e);
-        }
+    @Test
+    void save_Success() {
+        TrainerDTO trainerDTO = new TrainerDTO();
+        Trainer trainer = new Trainer();
+        when(convertor.dTOToEntityConvertor(trainerDTO)).thenReturn(trainer);
+
+        assertEquals("Successfully saved trainer", traineeService.save(trainerDTO));
+        verify(trainerRepo, times(1)).save(trainer);
+    }
+    @Test
+    public void testSave_Failure() {
+        String unexpectedErrorMessage = "Unexpected database error";
+        when(trainerRepo.save(any(Trainer.class))).thenThrow(new RuntimeException(unexpectedErrorMessage));
+        when(convertor.dTOToEntityConvertor(trainerDTO)).thenReturn(new Trainer());  // Mock the conversion
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            traineeService.save(trainerDTO);
+        });
+        assertEquals("Failed to save trainer", exception.getMessage());
+        assertEquals(unexpectedErrorMessage, exception.getCause().getMessage());
     }
 
-    @Override
-    public String update(TrainerDTO trainerDTO) {
-        log.info("Attempting to update trainer with ID {}.", trainerDTO.getId());
-        try {
-            TrainerDTO existingTrainer = getTrainerById(trainerDTO.getId());
-            trainerRepo.save(convertor.dTOToEntityConvertor(existingTrainer));
-            log.info("Trainer with ID {} updated successfully.", trainerDTO.getId());
-            return "Successfully updated trainer";
-        } catch (Exception e) {
-            log.error("Failed to update trainer with ID {}.", trainerDTO.getId(), e);
-            throw new RuntimeException("Failed to update trainer", e);
-        }
-    }
+    @Test
+    public void testUpdate_Success() {
+        long trainerId = 1L;
+        Trainer trainer = new Trainer(trainerId, "John Doe", "Yoga", "NIT certificate", 4, "8888888888", "Meditation");
+        TrainerDTO trainerDTO = new TrainerDTO(trainerId, "John Doe", "Yoga", "NIT certificate", 4, "8888888888", "Meditation");
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(trainerDTO);
+        when(convertor.dTOToEntityConvertor(trainerDTO)).thenReturn(trainer);
+        when(trainerRepo.save(trainer)).thenReturn(trainer);
+        TrainerDTO resultDTO = traineeService.getTrainerById(trainerId);
+        String updateMsg = traineeService.update(trainerDTO);
+        assertEquals(trainerDTO, resultDTO);
+        assertEquals("Successfully updated trainer", updateMsg);
 
-    @Override
-    public String delete(long id) {
-        log.info("Attempting to delete trainer with ID {}.", id);
-        try {
-            getTrainerById(id);
-            trainerRepo.deleteById(id);
-            log.info("Trainer with ID {} deleted successfully.", id);
-            return "Successfully deleted trainer";
-        } catch (Exception e) {
-            log.error("Failed to delete trainer with ID {}.", id, e);
-            throw new RuntimeException("Failed to delete trainer", e);
-        }
-    }
-
-    @Override
-    public UsersTrainerResponse getUsersByTrainerId(long id) {
-        try {
-            log.info("Attempting to fetch user and their trainer with User ID: {}", id);
-            UsersTrainerResponse response = new UsersTrainerResponse();
-            Trainer trainer = trainerRepo.findById(id).orElseThrow(() -> {
-                log.error("Trainer with ID: {} not found. Fetching operation aborted.", id);
-                return new TrainerNotFoundException("Failed to fetch users for trainer");
-            });
-            User[] usersArray = restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + id, User[].class);
-            List<User> users = (usersArray != null) ? Arrays.asList(usersArray) : Collections.emptyList();
-            response.setUser(users);
-            response.setTrainer(trainer);
-            log.info("Successfully fetched user and trainer for User ID: {}", id);
-            return response;
-        } catch (Exception e) {
-            log.error("Failed to fetch user and their trainer for User ID: {}", id, e);
-            throw e;
-        }
     }
 
 
 
-    @Override
-    public String patchTrainer(long id, TrainerDTO trainerDTO) {
-        log.info("Attempting to patch trainer with ID {}.", id);
-        try {
-            TrainerDTO existingTrainer = getTrainerById(id);
-            existingTrainer.setName(trainerDTO.getName() != null ? trainerDTO.getName() : existingTrainer.getName());
-            existingTrainer.setSpeciality(trainerDTO.getSpeciality() != null ? trainerDTO.getSpeciality() : existingTrainer.getSpeciality());
-            existingTrainer.setCertificate(trainerDTO.getCertificate() != null ? trainerDTO.getCertificate() : existingTrainer.getCertificate());
-            existingTrainer.setExperienceYears(trainerDTO.getExperienceYears() > 0 ? trainerDTO.getExperienceYears() : existingTrainer.getExperienceYears());
-            existingTrainer.setPhoneNumber(trainerDTO.getPhoneNumber() != null ? trainerDTO.getPhoneNumber() : existingTrainer.getPhoneNumber());
-            existingTrainer.setWorkoutPlan(trainerDTO.getWorkoutPlan() != null ? trainerDTO.getWorkoutPlan() : existingTrainer.getWorkoutPlan());
 
-            trainerRepo.save(convertor.dTOToEntityConvertor(existingTrainer));
-            log.info("Trainer with ID {} patched successfully.", id);
-            return "Successfully updated";
-        } catch (Exception e) {
-            log.error("Failed to patch update trainer with ID {}.", id, e);
-            throw new RuntimeException("Failed to patch update trainer", e);
-        }
+    @Test
+    void delete_Success() {
+        TrainerDTO trainerDTO = new TrainerDTO();
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.of(new Trainer()));
+
+        assertEquals("Successfully deleted trainer", traineeService.delete(1L));
+        verify(trainerRepo, times(1)).findById(1L);
+        verify(trainerRepo, times(1)).deleteById(1L);
     }
+
+    @Test
+    public void testDelete_Failure() {
+        long trainerId = 1L;
+
+        when(trainerRepo.findById(trainerId)).thenThrow(new RuntimeException("Trainer Not found"));
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
+            traineeService.delete(trainerId);
+        });
+
+        assertEquals("Failed to delete trainer", thrown.getMessage());
+
+    }
+
+    @Test
+    void getUsersByTrainerId_Success() {
+        Trainer trainer = new Trainer();
+        User user = new User();
+        UsersTrainerResponse response = new UsersTrainerResponse();
+        response.setTrainer(trainer);
+        response.setUser(Collections.singletonList(user));
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.of(trainer));
+        when(restTemplate.getForObject(anyString(), eq(User[].class)))
+                .thenReturn(new User[]{user}); // Ensure this matches your actual code
+
+        assertEquals(response, traineeService.getUsersByTrainerId(1L));
+        verify(trainerRepo, times(1)).findById(1L);
+        verify(restTemplate, times(1)).getForObject("http://localhost:9001/users/by-trainer/1", User[].class);
+    }
+
+
+    @Test
+    public void test_update_success(){
+        Trainer trainer=new Trainer(1L, "John Doe", "Yoga","NIT certificate",4,"8888888888","Medidation");
+        long trainer_id=1L;
+        TrainerDTO trainerDTO=new TrainerDTO(1L, "John Doe", "Yoga","NIT certificate",4,"8888888888","Medidation");
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.of(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(trainerDTO);
+        assertEquals(trainerDTO, traineeService.getTrainerById(1L));
+        String msg=traineeService.save(trainerDTO);
+        assertEquals("Successfully saved trainer",msg);
+    }
+    @Test
+    public void test_update_notFoundId(){
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
+        TrainerNotFoundException trow=assertThrows(TrainerNotFoundException.class,()->{
+            traineeService.getTrainerById(anyLong());
+        });
+        assertEquals("Trainer Not found",trow.getMessage());
+        verify(trainerRepo,times(1)).findById(anyLong());
+    }
+    @Test
+    public void testUpdate_Failure() {
+        TrainerDTO trainerDTO = new TrainerDTO();
+        trainerDTO.setId(1L);
+        when(trainerRepo.findById(anyLong())).thenThrow(new RuntimeException("Trainer not found"));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            traineeService.update(trainerDTO);
+        });
+
+        assertEquals("Failed to update trainer", exception.getMessage());
+
+    }
+
+
+    @Test
+    public void test_patch_success(){
+        Trainer trainer=new Trainer();
+        TrainerDTO trainerDTO=new TrainerDTO();
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.of(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(trainerDTO);
+        assertEquals(trainerDTO, traineeService.getTrainerById(1L));
+        String msg=traineeService.patchTrainer(1L,trainerDTO);
+        assertEquals("Successfully updated",msg);
+
+    }
+    @Test
+    public void testPatchTrainer_Failure() {
+        long trainerId = 1L;
+        TrainerDTO updateDTO = new TrainerDTO(trainerId, "New Name", null, null, 0, "0987654321", null);
+
+        when(trainerRepo.findById(trainerId)).thenThrow(new RuntimeException("Trainer not found"));
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
+            traineeService.patchTrainer(trainerId, updateDTO);
+        });
+
+        assertEquals("Failed to patch update trainer", thrown.getMessage());
+
+    }
+
+    @Test
+    public void testPatchTrainer_InvalidExperienceYears() {
+        long trainerId = 1L;
+        TrainerDTO existingTrainerDTO = new TrainerDTO(trainerId, "Old Name", "Old Speciality", "Old Certificate", 5, "1234567890", "Old Workout Plan");
+        TrainerDTO updateDTO = new TrainerDTO(trainerId, null, null, null, -1, null, null);
+        Trainer existingTrainer = new Trainer(trainerId, "Old Name", "Old Speciality", "Old Certificate", 5, "1234567890", "Old Workout Plan");
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(existingTrainer));
+        when(convertor.dTOToEntityConvertor(existingTrainerDTO)).thenReturn(existingTrainer);
+        when(trainerRepo.save(any(Trainer.class))).thenThrow(new RuntimeException("Trainer not found"));
+
+       RuntimeException exception= assertThrows(RuntimeException.class,()->{
+           traineeService.patchTrainer(trainerId, updateDTO);
+       });
+       assertEquals("Failed to patch update trainer",exception.getMessage());
+    }
+
+    
+
+
+    @Test
+    public void delete_failure(){
+        when(trainerRepo.findById(anyLong())).thenReturn(Optional.empty());
+        TrainerNotFoundException trow=assertThrows(TrainerNotFoundException.class,()->{
+            traineeService.getTrainerById(anyLong());
+        });
+        assertEquals("Trainer Not found",trow.getMessage());
+        verify(trainerRepo,times(1)).findById(anyLong());
+
+    }
+    @Test
+    void testGetUsersByTrainerId_Success() {
+        long trainerId = 1L;
+        Trainer trainer = new Trainer();
+        trainer.setId(trainerId);
+
+        User[] usersArray = { new User(), new User() };
+        ResponseEntity<User[]> responseEntity = ResponseEntity.ok(usersArray);
+
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(trainer));
+        when(restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + trainerId, User[].class))
+                .thenReturn(usersArray); // Ensure this matches your actual code
+
+        UsersTrainerResponse response = traineeService.getUsersByTrainerId(trainerId);
+
+        assertNotNull(response);
+        assertEquals(trainer, response.getTrainer());
+        assertEquals(2, response.getUser().size());
+    }
+
+    @Test
+    public void testGetUsersByTrainerId_UsersArrayNull() {
+        long trainerId = 1L;
+        Trainer trainer = new Trainer();
+        trainer.setId(trainerId);
+
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(trainer));
+        when(restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + trainerId, User[].class))
+                .thenReturn(null);
+
+        UsersTrainerResponse response = traineeService.getUsersByTrainerId(trainerId);
+
+        assertNotNull(response);
+        assertEquals(trainer, response.getTrainer());
+        assertTrue(response.getUser().isEmpty());
+    }
+
+
+    @Test
+    public void testGetUsersByTrainerId_TrainerNotFound() {
+        long trainerId = 1L;
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.empty());
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
+            traineeService.getUsersByTrainerId(trainerId);
+        });
+        assertEquals("Failed to fetch users for trainer", thrown.getMessage());
+    }
+
+    @Test
+    public void testGetUsersByTrainerId_RestTemplateError() {
+        long trainerId = 1L;
+        Trainer trainer = new Trainer();
+        trainer.setId(trainerId);
+
+        when(trainerRepo.findById(trainerId)).thenReturn(Optional.of(trainer));
+        when(restTemplate.getForObject("http://localhost:9001/users/by-trainer/" + trainerId, User[].class))
+                .thenThrow(new RuntimeException("External service error"));
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
+            traineeService.getUsersByTrainerId(trainerId);
+        });
+
+        assertEquals("External service error", thrown.getMessage());
+    }
+
 }

@@ -133,20 +133,21 @@ public class TraineeServiceImpl implements TrainerService {
         }
     }
 
+
+
     @Override
     public String patchTrainer(long id, TrainerDTO trainerDTO) {
         log.info("Attempting to patch trainer with ID {}.", id);
         try {
-            Trainer trainer = trainerRepo.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Trainer not found with ID: " + id));
-            trainer.setName(trainerDTO.getName() != null ? trainerDTO.getName() : trainer.getName());
-            trainer.setSpeciality(trainerDTO.getSpeciality() != null ? trainerDTO.getSpeciality() : trainer.getSpeciality());
-            trainer.setCertificate(trainerDTO.getCertificate() != null ? trainerDTO.getCertificate() : trainer.getCertificate());
-            trainer.setExperienceYears(trainerDTO.getExperienceYears() > 0 ? trainerDTO.getExperienceYears() : trainer.getExperienceYears());
-            trainer.setPhoneNumber(trainerDTO.getPhoneNumber() != null ? trainerDTO.getPhoneNumber() : trainer.getPhoneNumber());
-            trainer.setWorkoutPlan(trainerDTO.getWorkoutPlan() != null ? trainerDTO.getWorkoutPlan() : trainer.getWorkoutPlan());
+            TrainerDTO existingTrainer = getTrainerById(id);
+            existingTrainer.setName(trainerDTO.getName() != null ? trainerDTO.getName() : existingTrainer.getName());
+            existingTrainer.setSpeciality(trainerDTO.getSpeciality() != null ? trainerDTO.getSpeciality() : existingTrainer.getSpeciality());
+            existingTrainer.setCertificate(trainerDTO.getCertificate() != null ? trainerDTO.getCertificate() : existingTrainer.getCertificate());
+            existingTrainer.setExperienceYears(trainerDTO.getExperienceYears() > 0 ? trainerDTO.getExperienceYears() : existingTrainer.getExperienceYears());
+            existingTrainer.setPhoneNumber(trainerDTO.getPhoneNumber() != null ? trainerDTO.getPhoneNumber() : existingTrainer.getPhoneNumber());
+            existingTrainer.setWorkoutPlan(trainerDTO.getWorkoutPlan() != null ? trainerDTO.getWorkoutPlan() : existingTrainer.getWorkoutPlan());
 
-            trainerRepo.save(trainer);
+            trainerRepo.save(convertor.dTOToEntityConvertor(existingTrainer));
             log.info("Trainer with ID {} patched successfully.", id);
             return "Successfully updated";
         } catch (Exception e) {
@@ -154,5 +155,4 @@ public class TraineeServiceImpl implements TrainerService {
             throw new RuntimeException("Failed to patch update trainer", e);
         }
     }
-
 }

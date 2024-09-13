@@ -256,7 +256,97 @@ public class TrainerServiceTest {
        assertEquals("Failed to patch update trainer",exception.getMessage());
     }
 
-    
+    @Test
+    public void testPatchTrainer_PartialUpdate() {
+        // Given
+        TrainerDTO existingTrainer = new TrainerDTO();
+        existingTrainer.setId(1L);
+        existingTrainer.setName("Old Name");
+        existingTrainer.setSpeciality("Old Speciality");
+        existingTrainer.setCertificate("Old Certificate");
+        existingTrainer.setExperienceYears(5);
+        existingTrainer.setPhoneNumber("1234567890");
+        existingTrainer.setWorkoutPlan("Old Plan");
+        Trainer trainer=new Trainer(1L,"Old Name","Old Speciality","Old Certificate",5,"1234567890","Old Plan");
+        TrainerDTO updateDTO = new TrainerDTO();
+        updateDTO.setName("New Name");
+        updateDTO.setSpeciality(null);
+        updateDTO.setCertificate("New Certificate");
+        updateDTO.setExperienceYears(0);
+        updateDTO.setPhoneNumber(null);
+        updateDTO.setWorkoutPlan("New Plan");
+        when(trainerRepo.findById(1L)).thenReturn(Optional.of(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(existingTrainer);
+        String result=traineeService.patchTrainer(1L,updateDTO);
+        assertEquals("New Name",existingTrainer.getName());
+        assertEquals("New Certificate",existingTrainer.getCertificate());
+        assertEquals("New Plan",existingTrainer.getWorkoutPlan());
+        assertEquals("Old Speciality",existingTrainer.getSpeciality());
+        assertEquals(5,existingTrainer.getExperienceYears());
+        assertEquals("1234567890",existingTrainer.getPhoneNumber());
+        assertEquals("Successfully updated",result);
+    }
+
+    @Test
+    public void testPatchTrainer_CompleteUpdate() {
+        TrainerDTO existingTrainer = new TrainerDTO();
+        existingTrainer.setId(1L);
+        existingTrainer.setName("Old Name");
+        existingTrainer.setSpeciality("Old Speciality");
+        existingTrainer.setCertificate("Old Certificate");
+        existingTrainer.setExperienceYears(5);
+        existingTrainer.setPhoneNumber("1234567890");
+        existingTrainer.setWorkoutPlan("Old Plan");
+        Trainer trainer=new Trainer(1L,"Old Name","Old Speciality","Old Certificate",5,"1234567890","Old Plan");
+        TrainerDTO updateDTO = new TrainerDTO();
+        updateDTO.setName("New Name");
+        updateDTO.setSpeciality("New Speciality");
+        updateDTO.setCertificate("New Certificate");
+        updateDTO.setExperienceYears(6);
+        updateDTO.setPhoneNumber("2345678901");
+        updateDTO.setWorkoutPlan("New Plan");
+        when(trainerRepo.findById(1L)).thenReturn(Optional.of(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(existingTrainer);
+        String result=traineeService.patchTrainer(1L,updateDTO);
+        assertEquals("New Name",existingTrainer.getName());
+        assertEquals("New Certificate",existingTrainer.getCertificate());
+        assertEquals("New Plan",existingTrainer.getWorkoutPlan());
+        assertEquals("New Speciality",existingTrainer.getSpeciality());
+        assertEquals(6,existingTrainer.getExperienceYears());
+        assertEquals("2345678901",existingTrainer.getPhoneNumber());
+        assertEquals("Successfully updated",result);
+    }
+
+    @Test
+    public void testPatchTrainer_NofeildUpdated() {
+        TrainerDTO existingTrainer = new TrainerDTO();
+        existingTrainer.setId(1L);
+        existingTrainer.setName("Old Name");
+        existingTrainer.setSpeciality("Old Speciality");
+        existingTrainer.setCertificate("Old Certificate");
+        existingTrainer.setExperienceYears(5);
+        existingTrainer.setPhoneNumber("1234567890");
+        existingTrainer.setWorkoutPlan("Old Plan");
+        Trainer trainer=new Trainer(1L,"Old Name","Old Speciality","Old Certificate",5,"1234567890","Old Plan");
+        TrainerDTO updateDTO = new TrainerDTO();
+        updateDTO.setName(null);
+        updateDTO.setSpeciality(null);
+        updateDTO.setCertificate(null);
+        updateDTO.setExperienceYears(0);
+        updateDTO.setPhoneNumber(null);
+        updateDTO.setWorkoutPlan(null);
+        when(trainerRepo.findById(1L)).thenReturn(Optional.of(trainer));
+        when(convertor.entityToDTOConvertor(trainer)).thenReturn(existingTrainer);
+        String result=traineeService.patchTrainer(1L,updateDTO);
+        assertEquals("Old Name",existingTrainer.getName());
+        assertEquals("Old Certificate",existingTrainer.getCertificate());
+        assertEquals("Old Plan",existingTrainer.getWorkoutPlan());
+        assertEquals("Old Speciality",existingTrainer.getSpeciality());
+        assertEquals(5,existingTrainer.getExperienceYears());
+        assertEquals("1234567890",existingTrainer.getPhoneNumber());
+        assertEquals("Successfully updated",result);
+    }
+
 
 
     @Test

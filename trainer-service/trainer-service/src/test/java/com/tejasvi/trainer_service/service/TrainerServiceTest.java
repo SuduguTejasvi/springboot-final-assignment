@@ -256,7 +256,34 @@ public class TrainerServiceTest {
        assertEquals("Failed to patch update trainer",exception.getMessage());
     }
 
+    @Test
+    public void testPatchTrainer_PartialUpdate() {
+        TrainerDTO existingTrainer = new TrainerDTO();
+        existingTrainer.setId(1L);
+        existingTrainer.setName("Old Name");
+        existingTrainer.setSpeciality("Old Speciality");
+        existingTrainer.setCertificate("Old Certificate");
+        existingTrainer.setExperienceYears(5);
+        existingTrainer.setPhoneNumber("1234567890");
+        existingTrainer.setWorkoutPlan("Old Plan");
 
+        Trainer trainer = new Trainer(1L, "Old Name", "Old Speciality", "Old Certificate", 5, "1234567890", "Old Plan");
+
+        TrainerDTO updateDTO = new TrainerDTO();
+        updateDTO.setName("New Name");
+
+        when(trainerRepo.findById(1L)).thenReturn(Optional.of(trainer));
+        when(convertor.dTOToEntityConvertor(existingTrainer)).thenReturn(trainer);
+        traineeService.patchTrainer(1L, updateDTO);
+        assertEquals("New Name", trainer.getName());
+        assertEquals("Old Speciality", trainer.getSpeciality());
+        assertEquals("Old Certificate", trainer.getCertificate());
+        assertEquals(5, trainer.getExperienceYears());
+        assertEquals("1234567890", trainer.getPhoneNumber());
+        assertEquals("Old Plan", trainer.getWorkoutPlan());
+
+        verify(trainerRepo, times(1)).save(trainer);
+    }
 
     @Test
     public void delete_failure(){
